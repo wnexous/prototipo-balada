@@ -5,6 +5,7 @@ import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
 import { BottomNav } from '../components/BottomNav';
 import { mapEvents, genreFilters, type MapEvent } from '../data/events';
+import { coverFor } from '../lib/media';
 
 function hexToRgba(hex: string, alpha: number) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -215,11 +216,9 @@ export function MapView() {
               className="w-full border overflow-hidden relative"
               style={{ height: 100, borderRadius: 14, backgroundColor: '#1a1a1a', borderColor: '#242424', marginBottom: 12 }}
             >
-              {/* X placeholder */}
-              <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.2 }}>
-                <line x1="0" y1="0" x2="100%" y2="100%" stroke="#666" strokeWidth="1.5" />
-                <line x1="100%" y1="0" x2="0" y2="100%" stroke="#666" strokeWidth="1.5" />
-              </svg>
+              {/* Capa real do evento */}
+              <img src={coverFor(selectedEvent.genre, selectedEvent.id)} alt={selectedEvent.name} referrerPolicy="no-referrer" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(8,8,8,0.55) 0%, transparent 70%)' }} />
               <div
                 className="absolute top-3 left-3 flex items-center border"
                 style={{

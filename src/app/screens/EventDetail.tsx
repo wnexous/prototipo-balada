@@ -76,18 +76,8 @@ export function EventDetail() {
         {/* Hero image */}
         <div className="relative w-full overflow-hidden" style={{ height: 260 }}>
           <img src={coverFor(event.genre, event.name)} alt={event.name} referrerPolicy="no-referrer" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-          {/* BG tint */}
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: isKpop ? hexToRgba(event.color, 0.12) : hexToRgba(event.color, 0.06), backgroundColor2: '#1a1a1a' }}
-          />
-          <div className="absolute inset-0" style={{ backgroundColor: '#1a1a1a' }} />
+          {/* Tint sutil da cor do gênero (deixa a foto aparecer) */}
           <div className="absolute inset-0" style={{ backgroundColor: isKpop ? hexToRgba(event.color, 0.12) : hexToRgba(event.color, 0.06) }} />
-          {/* X-lines placeholder */}
-          <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.18 }}>
-            <line x1="0" y1="0" x2="100%" y2="100%" stroke="#666" strokeWidth="1.5" />
-            <line x1="100%" y1="0" x2="0" y2="100%" stroke="#666" strokeWidth="1.5" />
-          </svg>
 
           {/* K-pop sparkles */}
           {isKpop && ['12%', '78%', '38%', '62%', '88%'].map((left, i) => (

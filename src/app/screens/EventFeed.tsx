@@ -21,10 +21,6 @@ function ImagePlaceholder({ color, genre, seed }: { color: string; genre?: strin
       {genre && (
         <img src={coverFor(genre, seed ?? genre)} alt="" referrerPolicy="no-referrer" className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
       )}
-      <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.22 }}>
-        <line x1="0" y1="0" x2="100%" y2="100%" stroke="#666" strokeWidth="1.5" />
-        <line x1="100%" y1="0" x2="0" y2="100%" stroke="#666" strokeWidth="1.5" />
-      </svg>
       <div
         className="absolute inset-0"
         style={{ background: `linear-gradient(135deg, ${hexToRgba(color, 0.08)} 0%, transparent 55%)` }}
@@ -274,10 +270,6 @@ export function EventFeed() {
       
             {/* BG tint for K-pop */}
             <div className="absolute inset-0" style={{ backgroundColor: hexToRgba(featuredEvent.color, 0.12) }} />
-            <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.18 }}>
-              <line x1="0" y1="0" x2="100%" y2="100%" stroke="#888" strokeWidth="1.5" />
-              <line x1="100%" y1="0" x2="0" y2="100%" stroke="#888" strokeWidth="1.5" />
-            </svg>
             {/* Sparkles for K-pop */}
             {['16%', '72%', '44%', '85%'].map((left, i) => (
               <span
