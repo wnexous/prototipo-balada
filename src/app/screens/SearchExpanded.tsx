@@ -5,6 +5,7 @@ import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
 import { allEvents, type EventData } from '../data/events';
 import { recentSearches, trendingSearches as trending, searchCategories as categories } from '../data/search';
+import { useBack } from '../lib/nav';
 
 function hexToRgba(hex: string, alpha: number) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -15,6 +16,7 @@ function hexToRgba(hex: string, alpha: number) {
 
 export function SearchExpanded() {
   const navigate = useNavigate();
+  const goBack = useBack('/home');
   const [query, setQuery] = useState('');
   const [recents, setRecents] = useState(recentSearches);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +90,7 @@ export function SearchExpanded() {
           )}
         </div>
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           style={{ color: '#e8ff47', fontSize: 13, fontFamily: "'DM Mono', monospace", flexShrink: 0 }}
         >
           Cancelar

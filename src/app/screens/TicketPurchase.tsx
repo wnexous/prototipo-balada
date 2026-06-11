@@ -1,14 +1,22 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { ticketLots as lotes, paymentMethods as payments } from '../data/tickets';
+import { allEvents, type EventData } from '../data/events';
+import { coverFor } from '../lib/media';
+import { useBack } from '../lib/nav';
 
 export function TicketPurchase() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const goBack = useBack('/home');
+  // Evento vem do state da navegação; fallback pro primeiro do catálogo (deep link)
+  const event: EventData = location.state?.event ?? allEvents[0];
+
   const [selectedLote, setSelectedLote] = useState('lote2');
   const [selectedPayment, setSelectedPayment] = useState('pix');
 
@@ -24,25 +32,25 @@ export function TicketPurchase() {
       <div className="border-b border-[var(--border-subtle)] px-6 py-4">
         <div className="flex items-center gap-4 mb-2">
           <Card className="w-9 h-9 flex items-center justify-center cursor-pointer hover:bg-[var(--elevated)] transition-colors">
-            <ArrowLeft size={18} className="text-[var(--text-primary)]" onClick={() => navigate('/event/1')} />
+            <ArrowLeft size={18} className="text-[var(--text-primary)]" onClick={goBack} />
           </Card>
           <h2 className="text-lg text-[var(--text-primary)]" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800 }}>
             Comprar Ingresso
           </h2>
         </div>
-        <p className="text-xs text-[var(--text-secondary)] ml-[52px]">Festa do Rock 2026</p>
+        <p className="text-xs text-[var(--text-secondary)] ml-[52px]">{event.name}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-32">
         {/* Event recap card */}
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-[14px] p-[14px] flex gap-3">
-          <div className="w-[60px] h-[60px] bg-[var(--elevated)] rounded-[10px] flex items-center justify-center flex-shrink-0">
-            <span className="text-[var(--text-tertiary)] text-xl">✕</span>
+          <div className="w-[60px] h-[60px] bg-[var(--elevated)] rounded-[10px] overflow-hidden flex-shrink-0">
+            <img src={coverFor(event.genre, event.id)} alt={event.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           </div>
           <div className="flex-1 flex flex-col justify-center gap-1">
-            <div className="text-sm font-bold text-[var(--text-primary)]">Festa do Rock 2026</div>
-            <div className="text-xs text-[var(--text-secondary)]">Hoje, 22h</div>
-            <div className="text-xs text-[var(--text-secondary)]">Bar XV, Curitiba</div>
+            <div className="text-sm font-bold text-[var(--text-primary)]">{event.name}</div>
+            <div className="text-xs text-[var(--text-secondary)]">{event.time}</div>
+            <div className="text-xs text-[var(--text-secondary)]">{event.venue}, Curitiba</div>
           </div>
         </div>
 
@@ -141,7 +149,7 @@ export function TicketPurchase() {
 
       {/* Fixed bottom */}
       <div className="absolute bottom-0 left-0 right-0 bg-[var(--background)] border-t border-[var(--border)] px-6 py-4 space-y-3">
-        <Button fullWidth onClick={() => navigate('/my-ticket')}>Finalizar compra</Button>
+        <Button fullWidth onClick={() => navigate('/my-ticket', { state: { event, lote: selectedLoteData?.name } })}>Finalizar compra</Button>
         <p className="text-[11px] text-[#555555] text-center">Pagamento 100% seguro 🔒</p>
       </div>
 

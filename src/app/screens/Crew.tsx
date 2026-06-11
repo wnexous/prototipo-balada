@@ -31,7 +31,7 @@ export function Crew() {
         <h2 className="text-lg text-[var(--text-primary)]" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800 }}>
           Galera do Sextou
         </h2>
-        <Settings size={20} className="text-[#555555]" />
+        <Settings size={20} className="text-[#555555] cursor-pointer" onClick={() => navigate('/settings')} />
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-28">

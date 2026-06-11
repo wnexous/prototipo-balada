@@ -342,7 +342,7 @@ export function EventFeed() {
                     )}
                   </h2>
                 </div>
-                <button style={{ color: '#e8ff47', fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
+                <button onClick={() => navigate('/search')} style={{ color: '#e8ff47', fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
                   ver todos →
                 </button>
               </div>

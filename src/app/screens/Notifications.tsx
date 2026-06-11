@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
+import { useBack } from '../lib/nav';
 import {
   allNotifications,
   notificationFilters as filterTabs,
@@ -19,6 +20,7 @@ function hexToRgba(hex: string, alpha: number) {
 
 export function Notifications() {
   const navigate = useNavigate();
+  const goBack = useBack('/home');
   const [activeFilter, setActiveFilter] = useState('Todas');
   const [readIds, setReadIds] = useState<Set<number>>(new Set());
 
@@ -47,7 +49,7 @@ export function Notifications() {
         style={{ padding: '14px 18px', borderColor: '#1a1a1a', gap: 12 }}
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex items-center justify-center border"
           style={{ width: 36, height: 36, backgroundColor: '#161616', borderColor: '#242424', borderRadius: 10, flexShrink: 0 }}
         >

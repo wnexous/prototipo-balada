@@ -5,9 +5,11 @@ import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
 import { Card } from '../components/Card';
 import { people, Person, Intention } from '../data/people';
+import { useBack } from '../lib/nav';
 
 export function WhoIsHere() {
   const navigate = useNavigate();
+  const goBack = useBack('/home');
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [likedPeople, setLikedPeople] = useState<Set<string>>(new Set());
 
@@ -33,7 +35,7 @@ export function WhoIsHere() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)]">
         <Card className="w-9 h-9 flex items-center justify-center cursor-pointer hover:bg-[var(--elevated)] transition-colors">
-          <ArrowLeft size={18} className="text-[var(--text-primary)]" onClick={() => navigate(-1)} />
+          <ArrowLeft size={18} className="text-[var(--text-primary)]" onClick={goBack} />
         </Card>
         <h2 className="text-lg text-[var(--text-primary)]" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800 }}>
           Quem está aqui

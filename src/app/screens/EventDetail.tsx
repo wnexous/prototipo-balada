@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { coverFor } from '../lib/media';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Clock, MapPin } from 'lucide-react';
+import { toast } from 'sonner';
+import { useBack } from '../lib/nav';
 import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
 import { people } from '../data/people';
@@ -31,7 +33,17 @@ const defaultEvent: EventData = {
 export function EventDetail() {
   const navigate = useNavigate();
   const location = useLocation();
+  const goBack = useBack('/home');
   const event: EventData = location.state?.event ?? defaultEvent;
+
+  const shareEvent = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.href} — ${event.name} (${event.time}, ${event.venue})`);
+      toast('Link do evento copiado! 🔗');
+    } catch {
+      toast('Compartilhe: ' + event.name + ' no ' + event.venue + ' 🎉');
+    }
+  };
 
   const [scrolled, setScrolled] = useState(false);
   const isKpop = event.genre === 'K-pop';
@@ -53,7 +65,7 @@ export function EventDetail() {
           style={{ backgroundColor: '#080808', borderColor: '#242424', padding: '14px 18px' }}
         >
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex items-center justify-center"
             style={{ width: 32, height: 32 }}
           >
@@ -103,7 +115,7 @@ export function EventDetail() {
 
           {/* Back button */}
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="absolute flex items-center justify-center border"
             style={{
               top: 14, left: 14, width: 36, height: 36,
@@ -118,6 +130,7 @@ export function EventDetail() {
 
           {/* Share button */}
           <button
+            onClick={shareEvent}
             className="absolute flex items-center justify-center border"
             style={{
               top: 14, right: 14, width: 36, height: 36,

@@ -6,9 +6,11 @@ import { HomeIndicator } from '../components/HomeIndicator';
 import { BottomNav } from '../components/BottomNav';
 import { Card } from '../components/Card';
 import { emergencyContacts as contacts } from '../data/emergencyContacts';
+import { useBack } from '../lib/nav';
 
 export function SOS() {
   const navigate = useNavigate();
+  const goBack = useBack('/home');
   const [sosActive, setSosActive] = useState(false);
 
   const alertCards = [
@@ -48,7 +50,7 @@ export function SOS() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)]">
         <Card className="w-9 h-9 flex items-center justify-center cursor-pointer hover:bg-[var(--elevated)] transition-colors">
-          <ArrowLeft size={18} className="text-[var(--text-primary)]" onClick={() => navigate(-1)} />
+          <ArrowLeft size={18} className="text-[var(--text-primary)]" onClick={goBack} />
         </Card>
         <h2 className="text-lg text-[var(--danger)]" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800 }}>
           EMERGÊNCIA
@@ -142,7 +144,7 @@ export function SOS() {
               </div>
             ))}
           </div>
-          <button className="text-[13px] text-[var(--accent)] underline text-center w-full">
+          <button className="text-[13px] text-[var(--accent)] underline text-center w-full" onClick={() => navigate('/emergency-contacts')}>
             + Editar contatos
           </button>
         </div>

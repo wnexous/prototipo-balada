@@ -3,13 +3,44 @@
 // usa as respostas simuladas como fallback — o app nunca quebra.
 import type { Person } from '../data/people';
 
-const KEY = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined)?.trim();
 // Tenta os modelos em ordem; cai pro próximo se o projeto não tiver acesso (404).
 // gemini-2.5-flash confirmado funcionando com a chave; demais como fallback.
 const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-2.5-flash-lite'];
 
+export const GEMINI_KEY_STORAGE = 'linkup:gemini-key';
+
+/**
+ * A chave NUNCA é embutida no bundle público: vem do localStorage (colada pelo
+ * usuário em Configurações > Chat com IA) ou, em dev local, do .env (VITE_).
+ */
+function getKey(): string | undefined {
+  try {
+    const stored = localStorage.getItem(GEMINI_KEY_STORAGE)?.trim();
+    if (stored) return stored;
+  } catch {
+    /* localStorage indisponível */
+  }
+  return (import.meta.env.VITE_GEMINI_API_KEY as string | undefined)?.trim();
+}
+
 export function hasGeminiKey(): boolean {
-  return Boolean(KEY && KEY.length > 10);
+  const k = getKey();
+  return Boolean(k && k.length > 10);
+}
+
+export function setGeminiKey(key: string): void {
+  try {
+    if (key.trim()) localStorage.setItem(GEMINI_KEY_STORAGE, key.trim());
+    else localStorage.removeItem(GEMINI_KEY_STORAGE);
+  } catch {
+    /* ignora */
+  }
+}
+
+export function getGeminiKeyMasked(): string | null {
+  const k = getKey();
+  if (!k) return null;
+  return `${k.slice(0, 6)}…${k.slice(-4)}`;
 }
 
 export type ChatTurn = { sender: 'user' | 'other'; text: string };
@@ -30,7 +61,8 @@ function systemInstruction(person: Person): string {
 }
 
 export async function chatWithGemini(person: Person, history: ChatTurn[]): Promise<string> {
-  if (!hasGeminiKey()) throw new Error('no-key');
+  const KEY = getKey();
+  if (!KEY || KEY.length <= 10) throw new Error('no-key');
 
   const body = {
     systemInstruction: { parts: [{ text: systemInstruction(person) }] },
@@ -48,7 +80,7 @@ export async function chatWithGemini(person: Person, history: ChatTurn[]): Promi
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY! },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': KEY },
           body: JSON.stringify(body),
         },
       );

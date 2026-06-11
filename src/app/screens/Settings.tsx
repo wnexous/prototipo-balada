@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
 import { Toggle } from '../components/Toggle';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { useBack } from '../lib/nav';
+import { hasGeminiKey, setGeminiKey, getGeminiKeyMasked } from '../lib/gemini';
 
 function hexToRgba(hex: string, alpha: number) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -89,7 +92,33 @@ function VerifiedTag() {
 
 export function Settings() {
   const navigate = useNavigate();
+  const goBack = useBack('/home');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [whoCanMessage, setWhoCanMessage] = useState('Apenas matches');
+
+  // Chave do Gemini fica SÓ no localStorage deste navegador — nunca no código.
+  const [aiKeyInput, setAiKeyInput] = useState('');
+  const [aiActive, setAiActive] = useState(hasGeminiKey());
+
+  const saveAiKey = () => {
+    const k = aiKeyInput.trim();
+    if (!k) return;
+    if (!k.startsWith('AIza') || k.length < 30) {
+      toast('Chave inválida — copie a chave do Google AI Studio');
+      return;
+    }
+    setGeminiKey(k);
+    setAiKeyInput('');
+    setAiActive(true);
+    toast('Chat com IA ativado neste dispositivo ✨');
+  };
+
+  const removeAiKey = () => {
+    setGeminiKey('');
+    setAiActive(hasGeminiKey()); // pode continuar ativo via .env em dev
+    toast('Chave removida deste dispositivo');
+  };
 
   const [toggles, setToggles] = useState({
     visibility: true,
@@ -114,7 +143,7 @@ export function Settings() {
         style={{ padding: '14px 18px', borderColor: '#1a1a1a', gap: 16 }}
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex items-center justify-center border"
           style={{ width: 36, height: 36, backgroundColor: '#161616', borderColor: '#242424', borderRadius: 10 }}
         >
@@ -184,7 +213,13 @@ export function Settings() {
         <SectionLabel label="CONTA" />
         <Row icon="👤" label="Editar perfil" right={<Chevron />} onPress={() => navigate('/profile-setup')} />
         <Row icon="🔒" label="Alterar senha" right={<Chevron />} onPress={() => navigate('/forgot-password')} />
-        <Row icon="📧" label="Alterar e-mail" subtitle="lucas@email.com" right={<Chevron />} />
+        <Row
+          icon="📧"
+          label="Alterar e-mail"
+          subtitle="lucas@email.com"
+          right={<Chevron />}
+          onPress={() => toast('Enviamos um link de confirmação pro seu e-mail 📧')}
+        />
         <Row icon="✓" label="Status de verificação" right={<VerifiedTag />} />
 
         {/* PRIVACIDADE */}
@@ -202,10 +237,21 @@ export function Settings() {
         <Row
           icon="💬"
           label="Quem pode me enviar mensagem"
-          subtitle="Apenas matches"
+          subtitle={whoCanMessage}
           right={<Chevron />}
+          onPress={() => {
+            const next = whoCanMessage === 'Apenas matches' ? 'Todos os verificados' : 'Apenas matches';
+            setWhoCanMessage(next);
+            toast(`Mensagens: ${next}`);
+          }}
         />
-        <Row icon="🚫" label="Usuários bloqueados" subtitle="0 bloqueados" right={<Chevron />} />
+        <Row
+          icon="🚫"
+          label="Usuários bloqueados"
+          subtitle="0 bloqueados"
+          right={<Chevron />}
+          onPress={() => toast('Você não bloqueou ninguém 🎉')}
+        />
 
         {/* NOTIFICAÇÕES */}
         <SectionLabel label="NOTIFICAÇÕES" />
@@ -245,12 +291,83 @@ export function Settings() {
           right={<Toggle on={toggles.safetyTracking} onChange={setToggle('safetyTracking')} />}
         />
 
+        {/* CHAT COM IA */}
+        <SectionLabel label="CHAT COM IA (GEMINI)" />
+        <div style={{ padding: '4px 18px 8px' }}>
+          <p className="text-[#555]" style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", lineHeight: 1.6 }}>
+            Cole sua chave do Google AI Studio pra conversar com as pessoas usando IA de
+            verdade. A chave fica salva <b>só neste navegador</b> — nunca é enviada pro
+            nosso servidor nem publicada.
+          </p>
+        </div>
+        {aiActive ? (
+          <Row
+            icon="✨"
+            label="IA ativa neste dispositivo"
+            subtitle={getGeminiKeyMasked() ?? 'via .env (dev)'}
+            right={
+              <button
+                onClick={removeAiKey}
+                className="border"
+                style={{
+                  borderColor: hexToRgba('#ff3b3b', 0.4),
+                  color: '#ff3b3b',
+                  fontSize: 11,
+                  fontFamily: "'DM Mono', monospace",
+                  borderRadius: 999,
+                  padding: '4px 12px',
+                  backgroundColor: 'transparent',
+                }}
+              >
+                Remover
+              </button>
+            }
+          />
+        ) : (
+          <div style={{ padding: '4px 18px 12px', display: 'flex', gap: 8 }}>
+            <input
+              type="password"
+              value={aiKeyInput}
+              onChange={(e) => setAiKeyInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && saveAiKey()}
+              placeholder="AIza..."
+              className="flex-1 border outline-none"
+              style={{
+                backgroundColor: '#161616',
+                borderColor: '#242424',
+                borderRadius: 10,
+                padding: '10px 14px',
+                color: '#f5f5f5',
+                fontSize: 13,
+                fontFamily: "'DM Mono', monospace",
+                minWidth: 0,
+              }}
+            />
+            <button
+              onClick={saveAiKey}
+              className="font-bold"
+              style={{
+                backgroundColor: '#e8ff47',
+                color: '#080808',
+                borderRadius: 10,
+                padding: '10px 16px',
+                fontSize: 13,
+                fontFamily: "'DM Mono', monospace",
+                border: 'none',
+                flexShrink: 0,
+              }}
+            >
+              Ativar
+            </button>
+          </div>
+        )}
+
         {/* SOBRE */}
         <SectionLabel label="SOBRE" />
-        <Row icon="⭐" label="Avaliar o app" right={<Chevron />} />
-        <Row icon="📋" label="Termos de uso" right={<Chevron />} />
-        <Row icon="🔐" label="Política de privacidade" right={<Chevron />} />
-        <Row icon="💬" label="Suporte" right={<Chevron />} />
+        <Row icon="⭐" label="Avaliar o app" right={<Chevron />} onPress={() => toast('Valeu! ⭐⭐⭐⭐⭐')} />
+        <Row icon="📋" label="Termos de uso" right={<Chevron />} onPress={() => toast('Termos de uso — disponíveis na versão final')} />
+        <Row icon="🔐" label="Política de privacidade" right={<Chevron />} onPress={() => toast('Política de privacidade — disponível na versão final')} />
+        <Row icon="💬" label="Suporte" right={<Chevron />} onPress={() => toast('Fale com a gente: suporte@linkup.app 💬')} />
         <Row
           icon="ℹ"
           label="Versão 1.0.0 Beta"
@@ -269,6 +386,7 @@ export function Settings() {
           <button
             className="w-full text-center"
             style={{ color: '#333', fontSize: 13, fontFamily: "'DM Mono', monospace", padding: '8px 0' }}
+            onClick={() => setShowDeleteModal(true)}
           >
             Excluir conta
           </button>
@@ -284,6 +402,18 @@ export function Settings() {
           confirmDanger
           onConfirm={() => navigate('/')}
           onCancel={() => setShowLogoutModal(false)}
+        />
+      )}
+
+      {showDeleteModal && (
+        <ConfirmModal
+          icon="⚠️"
+          title="Excluir sua conta?"
+          message="Todos os seus dados, matches e conversas serão apagados. Essa ação não pode ser desfeita."
+          confirmLabel="Excluir conta"
+          confirmDanger
+          onConfirm={() => { setShowDeleteModal(false); toast('Conta excluída. Sentiremos sua falta 💔'); navigate('/'); }}
+          onCancel={() => setShowDeleteModal(false)}
         />
       )}
 

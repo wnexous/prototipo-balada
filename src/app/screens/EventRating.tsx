@@ -14,6 +14,7 @@ function hexToRgba(hex: string, alpha: number) {
 export function EventRating() {
   const navigate = useNavigate();
   const [mainRating, setMainRating] = useState(0);
+  const [photoCount, setPhotoCount] = useState(0);
   const [catRatings, setCatRatings] = useState({ Música: 0, Ambiente: 0, Segurança: 0 });
   const [comment, setComment] = useState('');
   const [hoveredStar, setHoveredStar] = useState(0);
@@ -206,18 +207,19 @@ export function EventRating() {
           {/* Photos button */}
           <button
             className="w-full flex items-center justify-center"
+            onClick={() => { setPhotoCount((c) => c + 1); toast('Foto adicionada 📷'); }}
             style={{
-              border: '1.5px dashed #333',
+              border: photoCount ? '1.5px dashed #e8ff47' : '1.5px dashed #333',
               borderRadius: 12,
               padding: 12,
               backgroundColor: 'transparent',
-              color: '#555',
+              color: photoCount ? '#e8ff47' : '#555',
               fontSize: 13,
               fontFamily: "'DM Mono', monospace",
               gap: 8,
             }}
           >
-            📷 Adicionar fotos
+            {photoCount ? `📷 ${photoCount} foto${photoCount > 1 ? 's' : ''} adicionada${photoCount > 1 ? 's' : ''} ✓` : '📷 Adicionar fotos'}
           </button>
 
           {/* Submit */}

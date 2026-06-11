@@ -4,6 +4,7 @@ import { HomeIndicator } from '../components/HomeIndicator';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { people } from '../data/people';
 import { useState } from 'react';
+import { useBack } from '../lib/nav';
 
 function hexToRgba(hex: string, alpha: number) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -20,6 +21,7 @@ const intentionLabels: Record<string, string> = {
 
 export function PersonProfile() {
   const navigate = useNavigate();
+  const goBack = useBack('/who-is-here');
   const { personName } = useParams<{ personName: string }>();
   const person = people.find((p) => p.name.toLowerCase() === personName?.toLowerCase());
   const [showBlockModal, setShowBlockModal] = useState(false);
@@ -63,7 +65,7 @@ export function PersonProfile() {
 
           {/* Back button */}
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="absolute flex items-center justify-center border"
             style={{
               top: 14, left: 14, width: 36, height: 36,
@@ -301,7 +303,7 @@ export function PersonProfile() {
           message={`${person.name} não poderá mais ver seu perfil ou enviar mensagens.`}
           confirmLabel="Bloquear"
           confirmDanger
-          onConfirm={() => { setShowBlockModal(false); navigate(-1); }}
+          onConfirm={() => { setShowBlockModal(false); goBack(); }}
           onCancel={() => setShowBlockModal(false)}
         />
       )}

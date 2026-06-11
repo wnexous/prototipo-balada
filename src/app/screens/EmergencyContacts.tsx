@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { useBack } from '../lib/nav';
 import { emergencyContacts as initialContacts, type EmergencyContact as Contact } from '../data/emergencyContacts';
 
 function hexToRgba(hex: string, alpha: number) {
@@ -15,6 +16,7 @@ function hexToRgba(hex: string, alpha: number) {
 
 export function EmergencyContacts() {
   const navigate = useNavigate();
+  const goBack = useBack('/sos');
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -54,7 +56,7 @@ export function EmergencyContacts() {
         style={{ padding: '14px 18px', borderColor: '#1a1a1a', gap: 12 }}
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex items-center justify-center border"
           style={{ width: 36, height: 36, backgroundColor: '#161616', borderColor: '#242424', borderRadius: 10 }}
         >
@@ -68,7 +70,7 @@ export function EmergencyContacts() {
         </h1>
         <button
           className="font-bold"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           style={{ color: '#e8ff47', fontSize: 13, fontFamily: "'DM Mono', monospace" }}
         >
           Salvar
@@ -267,7 +269,7 @@ export function EmergencyContacts() {
       >
         <button
           className="w-full font-bold"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           style={{
             backgroundColor: '#e8ff47',
             color: '#080808',

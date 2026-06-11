@@ -8,6 +8,7 @@ import { HomeIndicator } from '../components/HomeIndicator';
 import { BottomNav } from '../components/BottomNav';
 import { mapEvents, genreFilters, MAP_CENTER, MAP_ZOOM, type MapEvent } from '../data/events';
 import { coverFor } from '../lib/media';
+import { useBack } from '../lib/nav';
 
 function hexToRgba(hex: string, alpha: number) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -42,7 +43,9 @@ const userIcon = L.divIcon({
 
 export function MapView() {
   const navigate = useNavigate();
+  const goBack = useBack('/home');
   const [activeGenre, setActiveGenre] = useState('Todos');
+  const [sortBy, setSortBy] = useState<'distância' | 'preço'>('distância');
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null);
 
   const mapElRef = useRef<HTMLDivElement>(null);
@@ -104,6 +107,14 @@ export function MapView() {
 
   const openEvent = (event: MapEvent) => navigate('/event/' + event.id, { state: { event } });
 
+  const previewRows = [...mapEvents]
+    .sort((a, b) =>
+      sortBy === 'preço'
+        ? a.price - b.price
+        : parseFloat(a.distance) - parseFloat(b.distance),
+    )
+    .slice(0, 3);
+
   return (
     <div className="w-[390px] h-[844px] bg-[#0a0a0a] relative overflow-hidden flex flex-col">
       {/* StatusBar acima do mapa (tiles são opacos) */}
@@ -146,7 +157,7 @@ export function MapView() {
           <button
             className="flex items-center justify-center border rounded-lg"
             style={{ width: 32, height: 32, backgroundColor: '#161616', borderColor: '#242424' }}
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft size={16} className="text-[#f5f5f5]" />
           </button>
@@ -307,12 +318,16 @@ export function MapView() {
               <span className="text-[#888]" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
                 {mapEvents.length} eventos próximos
               </span>
-              <button className="font-bold" style={{ color: '#e8ff47', fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
-                ordenar ▾
+              <button
+                className="font-bold"
+                onClick={() => setSortBy((s) => (s === 'distância' ? 'preço' : 'distância'))}
+                style={{ color: '#e8ff47', fontSize: 12, fontFamily: "'DM Mono', monospace" }}
+              >
+                ordenar: {sortBy} ▾
               </button>
             </div>
 
-            {[mapEvents[3], mapEvents[0], mapEvents[1]].map((event) => (
+            {previewRows.map((event) => (
               <div
                 key={event.id}
                 className="flex items-center border-b cursor-pointer"

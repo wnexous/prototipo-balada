@@ -7,6 +7,7 @@ import { Avatar } from '../components/Avatar';
 import { people } from '../data/people';
 import { autoReplies as AUTO_REPLIES, quickReplies as QUICK_REPLIES } from '../data/conversations';
 import { chatWithGemini, hasGeminiKey } from '../lib/gemini';
+import { toast } from 'sonner';
 
 function hexToRgba(hex: string, alpha: number) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -360,6 +361,7 @@ export function Chat() {
         <button
           className="flex items-center justify-center rounded-full border text-[#555]"
           style={{ width: 38, height: 38, backgroundColor: '#161616', borderColor: '#242424', flexShrink: 0 }}
+          onClick={() => toast('Fotos e áudios chegam na versão final 📎')}
         >
           +
         </button>
@@ -386,7 +388,11 @@ export function Chat() {
             className="flex-1 bg-transparent outline-none text-[#f5f5f5]"
             style={{ fontSize: 14, fontFamily: "'DM Mono', monospace" }}
           />
-          <button className="text-[#555]" style={{ fontSize: 18, flexShrink: 0 }}>
+          <button
+            className="text-[#555]"
+            style={{ fontSize: 18, flexShrink: 0 }}
+            onClick={() => { setInputText((t) => t + ' 😊'); inputRef.current?.focus(); }}
+          >
             😊
           </button>
         </div>

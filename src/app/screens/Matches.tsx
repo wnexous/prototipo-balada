@@ -42,7 +42,7 @@ export function Matches() {
         >
           Mensagens
         </h1>
-        <button className="text-[#555]" style={{ fontSize: 20 }}>
+        <button className="text-[#555]" style={{ fontSize: 20 }} onClick={() => navigate('/who-is-here')}>
           ✎
         </button>
       </div>
@@ -87,7 +87,7 @@ export function Matches() {
               </div>
             ))}
             {/* Ver todos */}
-            <div className="flex flex-col items-center" style={{ gap: 6, minWidth: 52 }}>
+            <div className="flex flex-col items-center cursor-pointer" style={{ gap: 6, minWidth: 52 }} onClick={() => navigate('/who-is-here')}>
               <div
                 className="rounded-full flex items-center justify-center border"
                 style={{ width: 52, height: 52, backgroundColor: '#161616', borderColor: '#242424', fontSize: 20, color: '#555' }}
@@ -143,7 +143,7 @@ export function Matches() {
               </span>
             </div>
           </div>
-          <button style={{ color: '#e8ff47', fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
+          <button onClick={() => navigate('/who-is-here')} style={{ color: '#e8ff47', fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
             Ver →
           </button>
         </div>
