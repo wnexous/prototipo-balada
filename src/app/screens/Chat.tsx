@@ -6,6 +6,7 @@ import { HomeIndicator } from '../components/HomeIndicator';
 import { Avatar } from '../components/Avatar';
 import { people } from '../data/people';
 import { autoReplies as AUTO_REPLIES, quickReplies as QUICK_REPLIES } from '../data/conversations';
+import { chatWithGemini, hasGeminiKey } from '../lib/gemini';
 
 function hexToRgba(hex: string, alpha: number) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -28,8 +29,18 @@ export function Chat() {
   const { personName } = useParams<{ personName: string }>();
   const person = people.find((p) => p.name.toLowerCase() === personName?.toLowerCase());
 
+  const storageKey = `linkup:chat:${(personName ?? '').toLowerCase()}`;
+
   const [inputText, setInputText] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed = raw ? (JSON.parse(raw) as Message[]) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [isTyping, setIsTyping] = useState(false);
   const [conversationStarted, setConversationStarted] = useState(false);
   const [quickReplyActive, setQuickReplyActive] = useState<string | null>(null);
@@ -38,6 +49,17 @@ export function Chat() {
   const replyIndexRef = useRef(0);
   const lastReplyIndexRef = useRef(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesRef = useRef<Message[]>(messages);
+  messagesRef.current = messages;
+
+  // Persiste a conversa no localStorage sempre que muda
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+    } catch {
+      /* ignora cota cheia / modo privado */
+    }
+  }, [messages, storageKey]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -56,34 +78,50 @@ export function Chat() {
     return AUTO_REPLIES[idx];
   };
 
-  const sendMessage = (text: string) => {
-    if (!text.trim()) return;
+  const clearChat = () => {
+    setMessages([]);
+    setConversationStarted(false);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* ignora */
+    }
+  };
 
-    const userMsg: Message = {
-      id: Date.now(),
-      text: text.trim(),
-      sender: 'user',
-      timestamp: 'agora',
-    };
-    setMessages((prev) => [...prev, userMsg]);
+  const sendMessage = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || isTyping) return;
+
+    const userMsg: Message = { id: Date.now(), text: trimmed, sender: 'user', timestamp: 'agora' };
+    const history = [...messagesRef.current, userMsg];
+    setMessages(history);
     setConversationStarted(true);
     setInputText('');
 
-    // Typing indicator after 0.8s
-    setTimeout(() => setIsTyping(true), 800);
+    setTimeout(() => setIsTyping(true), 400);
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    // Auto-reply with randomised delay 1.2s–2.5s
-    const delay = 2000 + Math.random() * 1300;
-    setTimeout(() => {
-      setIsTyping(false);
-      const reply: Message = {
-        id: Date.now() + 1,
-        text: getNextReply(),
-        sender: 'other',
-        timestamp: 'agora',
-      };
-      setMessages((prev) => [...prev, reply]);
-    }, delay);
+    let replyText: string;
+    try {
+      if (hasGeminiKey()) {
+        // Resposta real via Gemini, em personagem (usa o histórico todo)
+        replyText = await chatWithGemini(
+          person,
+          history.map((m) => ({ sender: m.sender, text: m.text })),
+        );
+      } else {
+        // Sem chave (ex.: site público) -> simulação
+        await wait(900 + Math.random() * 900);
+        replyText = getNextReply();
+      }
+    } catch {
+      await wait(300);
+      replyText = getNextReply(); // fallback se a API falhar
+    }
+
+    setIsTyping(false);
+    const reply: Message = { id: Date.now() + 1, text: replyText, sender: 'other', timestamp: 'agora' };
+    setMessages((prev) => [...prev, reply]);
   };
 
   const handleQuickReply = (text: string) => {
@@ -131,6 +169,9 @@ export function Chat() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button onClick={clearChat} title="Limpar conversa">
+            <span className="text-[#555] text-base">🗑</span>
+          </button>
           <Phone size={20} className="text-[#555]" />
           <button onClick={() => navigate('/sos')}>
             <span className="text-[#ff3b3b] text-xl">⊗</span>

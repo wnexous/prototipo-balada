@@ -13,7 +13,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-20 bg-[var(--background)] border-t border-[var(--border-subtle)] flex items-center justify-around px-4">
+    <div className="absolute bottom-0 left-0 right-0 z-20 h-20 bg-[var(--background)] border-t border-[var(--border-subtle)] flex items-center justify-around px-4">
       {tabs.map((tab) => {
         const isActive = location.pathname === tab.path ||
                         (tab.id === 'home' && location.pathname === '/home') ||

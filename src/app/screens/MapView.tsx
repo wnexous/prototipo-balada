@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, SlidersHorizontal, Bell } from 'lucide-react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { StatusBar } from '../components/StatusBar';
 import { HomeIndicator } from '../components/HomeIndicator';
 import { BottomNav } from '../components/BottomNav';
-import { mapEvents, genreFilters, type MapEvent } from '../data/events';
+import { mapEvents, genreFilters, MAP_CENTER, MAP_ZOOM, type MapEvent } from '../data/events';
 import { coverFor } from '../lib/media';
 
 function hexToRgba(hex: string, alpha: number) {
@@ -14,87 +16,120 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+function pinIcon(event: MapEvent, active: boolean) {
+  const s = event.pinSize;
+  const fontSize = s >= 52 ? 22 : s >= 44 ? 18 : 15;
+  return L.divIcon({
+    className: '',
+    iconSize: [s, s],
+    iconAnchor: [s / 2, s / 2],
+    html: `<div style="width:${s}px;height:${s}px;border-radius:9999px;display:flex;align-items:center;justify-content:center;
+      background:${hexToRgba(event.color, active ? 0.95 : 0.88)};border:2px solid #fff;
+      box-shadow:0 4px 14px ${hexToRgba(event.color, 0.55)};font-size:${fontSize}px;line-height:1;
+      transform:scale(${active ? 1.18 : 1});transition:transform .2s;">${event.emoji}</div>`,
+  });
+}
+
+const userIcon = L.divIcon({
+  className: '',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+  html: `<div style="position:relative;width:18px;height:18px;">
+    <div class="animate-ping" style="position:absolute;inset:-9px;border-radius:9999px;background:rgba(232,255,71,0.25);"></div>
+    <div style="position:absolute;inset:0;border-radius:9999px;background:#e8ff47;border:2px solid #fff;box-shadow:0 0 10px rgba(232,255,71,0.7);"></div>
+  </div>`,
+});
+
 export function MapView() {
   const navigate = useNavigate();
   const [activeGenre, setActiveGenre] = useState('Todos');
   const [selectedEvent, setSelectedEvent] = useState<MapEvent | null>(null);
 
-  const isPinVisible = (event: MapEvent) => {
-    if (activeGenre === 'Todos') return true;
-    return event.genre === activeGenre;
-  };
+  const mapElRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+  // selectedEvent dentro de um ref p/ os handlers de clique dos markers lerem o valor atual
+  const selectedRef = useRef<MapEvent | null>(null);
+  selectedRef.current = selectedEvent;
 
   const activeGenreColor = genreFilters.find((g) => g.id === activeGenre)?.color ?? '#e8ff47';
 
+  // Inicializa o mapa Leaflet uma única vez
+  useEffect(() => {
+    if (!mapElRef.current || mapRef.current) return;
+    const map = L.map(mapElRef.current, {
+      zoomControl: false,
+      attributionControl: false, // usamos um selo próprio sempre visível (abaixo)
+      center: MAP_CENTER,
+      zoom: MAP_ZOOM,
+    });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 20,
+    }).addTo(map);
+    L.marker(MAP_CENTER, { icon: userIcon, interactive: false }).addTo(map);
+    mapRef.current = map;
+    setTimeout(() => map.invalidateSize(), 0);
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // (Re)desenha os pins conforme filtro de gênero / seleção
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = mapEvents
+      .filter((e) => activeGenre === 'Todos' || e.genre === activeGenre)
+      .map((e) => {
+        const marker = L.marker([e.lat, e.lng], {
+          icon: pinIcon(e, selectedRef.current?.id === e.id),
+          riseOnHover: true,
+        }).addTo(map);
+        marker.on('click', () =>
+          setSelectedEvent((prev) => (prev?.id === e.id ? null : e)),
+        );
+        return marker;
+      });
+  }, [activeGenre, selectedEvent]);
+
+  // Centraliza no evento selecionado
+  useEffect(() => {
+    if (selectedEvent && mapRef.current) {
+      mapRef.current.flyTo([selectedEvent.lat, selectedEvent.lng], 15, { duration: 0.6 });
+    }
+  }, [selectedEvent]);
+
+  const openEvent = (event: MapEvent) => navigate('/event/' + event.id, { state: { event } });
+
   return (
-    <div className="w-[390px] h-[844px] bg-[#0a1a0a] relative overflow-hidden flex flex-col">
-      <StatusBar />
-
-      {/* Full-screen map */}
-      <div className="absolute inset-0 top-0">
-        {/* Grid */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, #1e2e1e 1px, transparent 1px),
-              linear-gradient(to bottom, #1e2e1e 1px, transparent 1px)
-            `,
-            backgroundSize: '36px 36px',
-          }}
-        />
-        {/* Street labels */}
-        <div className="absolute top-[28%] left-[6%] text-[10px] text-[#253525] rotate-[-4deg]" style={{ fontFamily: "'DM Mono', monospace" }}>Rua das Flores</div>
-        <div className="absolute top-[18%] left-[32%] text-[10px] text-[#253525] rotate-[2deg]" style={{ fontFamily: "'DM Mono', monospace" }}>Av. Batel</div>
-        <div className="absolute top-[55%] left-[55%] text-[10px] text-[#253525] rotate-[-2deg]" style={{ fontFamily: "'DM Mono', monospace" }}>Rua XV de Nov.</div>
-        <div className="absolute top-[72%] left-[25%] text-[10px] text-[#253525] rotate-[3deg]" style={{ fontFamily: "'DM Mono', monospace" }}>Av. Iguaçu</div>
-
-        {/* Event pins */}
-        {mapEvents.map((event) => {
-          const visible = isPinVisible(event);
-          return (
-            <button
-              key={event.id}
-              className="absolute flex items-center justify-center border-2 border-white rounded-full transition-all duration-300"
-              style={{
-                top: event.top,
-                left: event.left,
-                width: event.pinSize,
-                height: event.pinSize,
-                backgroundColor: hexToRgba(event.color, visible ? 0.9 : 0.15),
-                borderColor: visible ? 'white' : 'transparent',
-                boxShadow: visible ? `0 4px 12px ${hexToRgba(event.color, 0.5)}` : 'none',
-                opacity: visible ? 1 : 0.2,
-                fontSize: event.pinSize >= 52 ? 22 : event.pinSize >= 44 ? 18 : 14,
-                transform: selectedEvent?.id === event.id ? 'scale(1.2)' : 'scale(1)',
-                zIndex: selectedEvent?.id === event.id ? 20 : 10,
-              }}
-              onClick={() => setSelectedEvent(selectedEvent?.id === event.id ? null : event)}
-            >
-              {event.emoji}
-            </button>
-          );
-        })}
-
-        {/* User location */}
-        <div
-          className="absolute flex items-center justify-center"
-          style={{ top: '58%', left: '50%', transform: 'translate(-50%, -50%)' }}
-        >
-          <div
-            className="absolute rounded-full animate-ping"
-            style={{ width: 48, height: 48, backgroundColor: 'rgba(232,255,71,0.08)' }}
-          />
-          <div
-            className="absolute rounded-full"
-            style={{ width: 32, height: 32, backgroundColor: 'rgba(232,255,71,0.2)' }}
-          />
-          <div
-            className="relative rounded-full border-2 border-white"
-            style={{ width: 16, height: 16, backgroundColor: '#e8ff47', zIndex: 15 }}
-          />
-        </div>
+    <div className="w-[390px] h-[844px] bg-[#0a0a0a] relative overflow-hidden flex flex-col">
+      {/* StatusBar acima do mapa (tiles são opacos) */}
+      <div className="relative z-30" style={{ backgroundColor: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(16px)' }}>
+        <StatusBar />
       </div>
+
+      {/* Mapa real (Leaflet + tiles CartoDB dark). zIndex 0 => fica atrás dos overlays. */}
+      <div ref={mapElRef} className="absolute inset-0" style={{ zIndex: 0, backgroundColor: '#0a0a0a' }} />
+
+      {/* Atribuição (OSM/CARTO) — sempre visível */}
+      <span
+        className="absolute z-30"
+        style={{
+          left: 16,
+          top: 232,
+          fontSize: 9,
+          color: 'rgba(245,245,245,0.55)',
+          backgroundColor: 'rgba(8,8,8,0.6)',
+          padding: '2px 6px',
+          borderRadius: 6,
+          fontFamily: "'DM Mono', monospace",
+        }}
+      >
+        © OpenStreetMap · © CARTO
+      </span>
 
       {/* Floating header */}
       <div
@@ -110,12 +145,7 @@ export function MapView() {
         <div className="flex items-center justify-between">
           <button
             className="flex items-center justify-center border rounded-lg"
-            style={{
-              width: 32,
-              height: 32,
-              backgroundColor: '#161616',
-              borderColor: '#242424',
-            }}
+            style={{ width: 32, height: 32, backgroundColor: '#161616', borderColor: '#242424' }}
             onClick={() => navigate(-1)}
           >
             <ArrowLeft size={16} className="text-[#f5f5f5]" />
@@ -134,25 +164,20 @@ export function MapView() {
       </div>
 
       {/* Floating search */}
-      <div
-        className="absolute left-0 right-0 z-30"
-        style={{ top: 44 + 56, paddingLeft: 16, paddingRight: 16 }}
-      >
+      <div className="absolute left-0 right-0 z-30" style={{ top: 44 + 56, paddingLeft: 16, paddingRight: 16 }}>
         <div
           className="flex items-center gap-3 border"
           style={{
-            backgroundColor: 'rgba(22,22,22,0.9)',
+            backgroundColor: 'rgba(22,22,22,0.92)',
             backdropFilter: 'blur(8px)',
             borderColor: '#242424',
             borderRadius: 12,
             padding: '12px 16px',
           }}
+          onClick={() => navigate('/search')}
         >
           <span className="text-[#555]">🔍</span>
-          <span
-            className="text-[#555]"
-            style={{ fontSize: 13, fontFamily: "'DM Mono', monospace" }}
-          >
+          <span className="text-[#555]" style={{ fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
             Buscar no mapa...
           </span>
         </div>
@@ -161,13 +186,7 @@ export function MapView() {
       {/* Genre filter chips */}
       <div
         className="absolute left-0 right-0 z-30 flex gap-2 overflow-x-auto"
-        style={{
-          top: 44 + 56 + 56,
-          paddingLeft: 16,
-          paddingRight: 16,
-          paddingBottom: 4,
-          scrollbarWidth: 'none',
-        }}
+        style={{ top: 44 + 56 + 56, paddingLeft: 16, paddingRight: 16, paddingBottom: 4, scrollbarWidth: 'none' }}
       >
         {genreFilters.map((gf) => {
           const isActive = activeGenre === gf.id;
@@ -181,9 +200,9 @@ export function MapView() {
                 fontSize: 12,
                 fontFamily: "'DM Mono', monospace",
                 flexShrink: 0,
-                backgroundColor: isActive ? hexToRgba(gf.color, 0.2) : 'rgba(8,8,8,0.8)',
+                backgroundColor: isActive ? hexToRgba(gf.color, 0.2) : 'rgba(8,8,8,0.85)',
                 borderColor: isActive ? gf.color : '#333',
-                color: isActive ? gf.color : '#666',
+                color: isActive ? gf.color : '#888',
               }}
               onClick={() => setActiveGenre(gf.id)}
             >
@@ -192,6 +211,27 @@ export function MapView() {
           );
         })}
       </div>
+
+      {/* Recenter button */}
+      <button
+        className="absolute z-30 flex items-center justify-center border rounded-full"
+        style={{
+          right: 16,
+          bottom: 320,
+          width: 42,
+          height: 42,
+          backgroundColor: 'rgba(8,8,8,0.9)',
+          borderColor: activeGenreColor,
+          color: activeGenreColor,
+          fontSize: 18,
+        }}
+        onClick={() => {
+          setSelectedEvent(null);
+          mapRef.current?.flyTo(MAP_CENTER, MAP_ZOOM, { duration: 0.6 });
+        }}
+      >
+        ◎
+      </button>
 
       {/* Bottom sheet */}
       <div
@@ -233,25 +273,16 @@ export function MapView() {
                 </span>
               </div>
             </div>
-            <h3
-              className="font-bold text-white mb-1"
-              style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 18 }}
-            >
+            <h3 className="font-bold text-white mb-1" style={{ fontFamily: "'Clash Display', sans-serif", fontSize: 18 }}>
               {selectedEvent.name}
             </h3>
             <p className="text-[#888] mb-1" style={{ fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
               {selectedEvent.venue} • {selectedEvent.time}
             </p>
             <div className="flex items-center gap-4 mb-3">
-              <span className="text-[#888]" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
-                ★ {selectedEvent.rating}
-              </span>
-              <span className="text-[#888]" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
-                {selectedEvent.confirmed} confirmados
-              </span>
-              <span className="text-[#888]" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
-                📍 {selectedEvent.distance}
-              </span>
+              <span className="text-[#888]" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>★ {selectedEvent.rating}</span>
+              <span className="text-[#888]" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>{selectedEvent.confirmed} confirmados</span>
+              <span className="text-[#888]" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>📍 {selectedEvent.distance}</span>
             </div>
             <button
               className="w-full font-bold border"
@@ -264,7 +295,7 @@ export function MapView() {
                 fontSize: 14,
                 fontFamily: "'Clash Display', sans-serif",
               }}
-              onClick={() => navigate('/event/1')}
+              onClick={() => openEvent(selectedEvent)}
             >
               Ver evento
             </button>
@@ -272,35 +303,22 @@ export function MapView() {
         ) : (
           /* Default: list preview */
           <div style={{ paddingBottom: 16 }}>
-            <div
-              className="flex items-center justify-between"
-              style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 8 }}
-            >
+            <div className="flex items-center justify-between" style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 8 }}>
               <span className="text-[#888]" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
                 {mapEvents.length} eventos próximos
               </span>
-              <button
-                className="font-bold"
-                style={{ color: '#e8ff47', fontSize: 12, fontFamily: "'DM Mono', monospace" }}
-              >
+              <button className="font-bold" style={{ color: '#e8ff47', fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
                 ordenar ▾
               </button>
             </div>
 
-            {/* 3 preview rows */}
-            {[mapEvents[3], mapEvents[0], mapEvents[1]].map((event, i) => (
+            {[mapEvents[3], mapEvents[0], mapEvents[1]].map((event) => (
               <div
                 key={event.id}
                 className="flex items-center border-b cursor-pointer"
-                style={{
-                  height: 64,
-                  paddingLeft: 16,
-                  paddingRight: 16,
-                  borderColor: '#1a1a1a',
-                }}
+                style={{ height: 64, paddingLeft: 16, paddingRight: 16, borderColor: '#1a1a1a' }}
                 onClick={() => setSelectedEvent(event)}
               >
-                {/* Pin circle */}
                 <div
                   className="flex items-center justify-center rounded-full border-2 border-white flex-shrink-0"
                   style={{
@@ -314,24 +332,16 @@ export function MapView() {
                 >
                   {event.emoji}
                 </div>
-                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p
-                    className="font-bold text-white truncate"
-                    style={{ fontSize: 13, fontFamily: "'DM Mono', monospace" }}
-                  >
+                  <p className="font-bold text-white truncate" style={{ fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
                     {event.name}
                   </p>
                   <p className="text-[#888] truncate" style={{ fontSize: 11, fontFamily: "'DM Mono', monospace" }}>
                     {event.venue} • {event.distance}
                   </p>
                 </div>
-                {/* Price + button */}
                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                  <span
-                    className="font-bold"
-                    style={{ color: event.color, fontSize: 13, fontFamily: "'DM Mono', monospace" }}
-                  >
+                  <span className="font-bold" style={{ color: event.color, fontSize: 13, fontFamily: "'DM Mono', monospace" }}>
                     R${event.price}
                   </span>
                   <button
@@ -345,7 +355,7 @@ export function MapView() {
                       padding: '4px 8px',
                       fontFamily: "'DM Mono', monospace",
                     }}
-                    onClick={(e) => { e.stopPropagation(); navigate('/event/1'); }}
+                    onClick={(e) => { e.stopPropagation(); openEvent(event); }}
                   >
                     Ver
                   </button>
@@ -353,10 +363,7 @@ export function MapView() {
               </div>
             ))}
 
-            <p
-              className="text-center text-[#555] mt-2"
-              style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}
-            >
+            <p className="text-center text-[#555] mt-2" style={{ fontSize: 12, fontFamily: "'DM Mono', monospace" }}>
               ... e mais {mapEvents.length - 3} eventos
             </p>
           </div>

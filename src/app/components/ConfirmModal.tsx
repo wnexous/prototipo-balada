@@ -21,7 +21,7 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="absolute inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
       onClick={onCancel}
     >

@@ -90,35 +90,38 @@ export const filterToSections: Record<string, string[]> = {
 };
 
 // --- Mapa (MapView) ----------------------------------------------------------
+// Coordenadas reais em Curitiba/PR — usadas pelo mapa Leaflet (tiles do CartoDB).
+export const MAP_CENTER: [number, number] = [-25.429, -49.271];
+export const MAP_ZOOM = 14;
+
 export type MapEvent = EventData & {
-  // posição do pin como porcentagem da área do mapa
-  top: string;
-  left: string;
+  lat: number;
+  lng: number;
   pinSize: number;
 };
 
-const mapPositions: Record<number, { top: string; left: string; pinSize: number }> = {
-  1:  { top: '14%', left: '12%', pinSize: 36 },
-  2:  { top: '11%', left: '72%', pinSize: 44 },
-  3:  { top: '38%', left: '14%', pinSize: 44 },
-  4:  { top: '46%', left: '46%', pinSize: 52 },
-  5:  { top: '42%', left: '74%', pinSize: 44 },
-  6:  { top: '66%', left: '76%', pinSize: 52 },
-  7:  { top: '70%', left: '10%', pinSize: 44 },
-  8:  { top: '22%', left: '46%', pinSize: 36 },
-  9:  { top: '52%', left: '63%', pinSize: 44 },
-  10: { top: '76%', left: '42%', pinSize: 52 },
-  11: { top: '7%',  left: '84%', pinSize: 36 },
-  12: { top: '82%', left: '6%',  pinSize: 44 },
-  13: { top: '30%', left: '60%', pinSize: 44 },
-  17: { top: '60%', left: '24%', pinSize: 36 },
-  18: { top: '34%', left: '86%', pinSize: 44 },
-  23: { top: '88%', left: '64%', pinSize: 36 },
+const mapCoords: Record<number, { lat: number; lng: number; pinSize: number }> = {
+  1:  { lat: -25.4290, lng: -49.2670, pinSize: 38 }, // Bar XV — Centro
+  2:  { lat: -25.4180, lng: -49.2720, pinSize: 46 }, // Wavehouse — Juvevê
+  3:  { lat: -25.4400, lng: -49.2600, pinSize: 46 }, // Clubão — Cristo Rei
+  4:  { lat: -25.4420, lng: -49.2880, pinSize: 54 }, // Void Club — Batel
+  5:  { lat: -25.4350, lng: -49.2500, pinSize: 46 }, // Samba Hall — Cristo Rei
+  6:  { lat: -25.4600, lng: -49.2900, pinSize: 54 }, // Arena Sul — Água Verde
+  7:  { lat: -25.4480, lng: -49.2650, pinSize: 46 }, // Base Club — Rebouças
+  8:  { lat: -25.4250, lng: -49.2780, pinSize: 38 }, // Café Bossa — Mercês
+  9:  { lat: -25.4150, lng: -49.2550, pinSize: 46 }, // Hangar 522 — Cabral
+  10: { lat: -25.4330, lng: -49.2720, pinSize: 54 }, // Bloco Central — Centro
+  11: { lat: -25.4100, lng: -49.2800, pinSize: 38 }, // The Roof — Bigorrilho
+  12: { lat: -25.4550, lng: -49.2550, pinSize: 46 }, // Marley Bar — Prado Velho
+  13: { lat: -25.4220, lng: -49.2620, pinSize: 46 }, // Neon Hall — Alto da XV
+  17: { lat: -25.4470, lng: -49.2780, pinSize: 38 }, // Garagem 70 — Água Verde
+  18: { lat: -25.4380, lng: -49.2950, pinSize: 46 }, // Sky Lounge — Bigorrilho
+  23: { lat: -25.4500, lng: -49.2700, pinSize: 38 }, // Beco 9 — Rebouças
 };
 
 export const mapEvents: MapEvent[] = allEvents
-  .filter((e) => mapPositions[e.id])
-  .map((e) => ({ ...e, ...mapPositions[e.id] }));
+  .filter((e) => mapCoords[e.id])
+  .map((e) => ({ ...e, ...mapCoords[e.id] }));
 
 export const genreFilters: { id: string; label: string; emoji: string | null; color: string }[] = [
   { id: 'Todos', label: 'Todos', emoji: null, color: '#e8ff47' },
